@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+  xmlns:context="http://www.springframework.org/schema/context"
+  xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+  xmlns:tx="http://www.springframework.org/schema/tx"
+  xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+  xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd
+		http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-4.2.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.2.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.2.xsd
+		http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit-1.7.xsd "
+  default-lazy-init="true">
+
+  <context:property-placeholder ignore-unresolvable="true" location="classpath:rabbitmq.properties" />
+
+  <context:component-scan base-package="com.ldy.rabbit" />
+
+  <bean id="taskExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+    <!-- 核心线程数，默认为1 -->
+    <property name="corePoolSize" value="3" />
+    <!-- 最大线程数，默认为Integer.MAX_VALUE -->
+    <property name="maxPoolSize" value="10" />
+    <!-- 队列最大长度，一般需要设置值>=notifyScheduledMainExecutor.maxNum；默认为Integer.MAX_VALUE -->
+    <property name="queueCapacity" value="0" />
+    <!-- 线程池维护线程所允许的空闲时间，默认为60s -->
+    <property name="keepAliveSeconds" value="30" />
+    <!-- 线程池对拒绝任务（无线程可用）的处理策略，目前只支持AbortPolicy、CallerRunsPolicy；默认为后者 -->
+    <property name="rejectedExecutionHandler">
+      <!-- AbortPolicy:直接抛出java.util.concurrent.RejectedExecutionException异常 -->
+      <!-- CallerRunsPolicy:主线程直接执行该任务，执行完之后尝试添加下一个任务到线程池中，可以有效降低向线程池内添加任务的速度 -->
+      <!-- DiscardOldestPolicy:抛弃旧的任务、暂不支持；会导致被丢弃的任务无法再次被执行 -->
+      <!-- DiscardPolicy:抛弃当前任务、暂不支持；会导致被丢弃的任务无法再次被执行 -->
+      <bean class="java.util.concurrent.ThreadPoolExecutor$CallerRunsPolicy" />
+    </property>
+  </bean>
+
+  <!-- 异步执行线程池，对jdk 线程池的封装，暴露部分参数 -->
+  <!-- 	 <bean id="taskExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+          <property name="corePoolSize" value="5"></property>
+          <property name="maxPoolSize" value="10"></property>
+          <property name="queueCapacity" value="0" >   </property>
+          <property name="keepAliveSeconds" value="30" >  </property>
+          <property name="rejectedExecutionHandler">
+              <bean class="java.util.concurrent.ThreadPoolExecutor$CallerRunsPolicy" />
+            </property>
+     </bean>  -->
+
+  <rabbit:connection-factory
+    id="connectionRabbitManufactureFactory" addresses="${manufacture_url}"  username="${rabbitmq_username}"  password="${rabbitmq_password}"/>
+  <rabbit:connection-factory
+    id="connectionRabbitConsumerFactory" addresses="${Consumer_url}"  username="${rabbitmq_username}"  password="${rabbitmq_password}"/>
+
+  <rabbit:admin connection-factory="connectionRabbitManufactureFactory" />
+  <rabbit:admin connection-factory="connectionRabbitConsumerFactory" />
+
+  <!-- queue 队列声明 需要发送消息到哪些队列  -->
+  <!-- 消息系统监听队列如果没有name将监听该转换器所有队列  auto-declare="false"队列和转换器不自动声明-->
+  <rabbit:queue id="test_queue" durable="true" auto-delete="false"
+    exclusive="false" name="${rabbitmq_queue}" auto-declare="true" />
+
+  <!-- 交换机定义 -->
+  <!--
+      交换机：一个交换机可以绑定多个队列，一个队列也可以绑定到多个交换机上。
+      如果没有队列绑定到交换机上，则发送到该交换机上的信息则会丢失。
+
+      direct模式:消息与一个特定的路由器完全匹配，才会转发
+      topic模式:按规则转发消息，最灵活
+   -->
+  <rabbit:direct-exchange  name="${rabbitmq_exchange}"  durable="true" auto-declare="true">
+    <rabbit:bindings >
+      <rabbit:binding queue="test_queue" key="${routing_key}" ></rabbit:binding>
+    </rabbit:bindings>
+  </rabbit:direct-exchange>
+
+  <!--     spring amqp默认的是jackson 的一个插件,目的将生产者生产的数据转换为json存入消息队列，由于fastjson的速度快于jackson,这里替换为fastjson的一个实现
+   -->
+  <bean id="jsonMessageConverter"  class="com.ldy.rabbit.FastJsonMessageConverter"></bean>
+
+  <!-- spring template声明-->
+  <rabbit:template exchange="${rabbitmq_exchange}" id="amqpTemplate"
+    connection-factory="connectionRabbitManufactureFactory"
+    message-converter="jsonMessageConverter" />
+
+  <!-- 通过rabbitMQ模板来发送消息 -->
+<!--  <bean id="messageSenderRabbit"  class="com.ldy.rabbit.MessageSenderRabbit">
+    <property name="amqpTemplate" ref="amqpTemplate"></property>
+  </bean>-->
+
+  <!-- 默认消息处理类，可以重写 -->
+  <bean id="messageHandler" class="com.ldy.rabbit.MessageHandler"></bean>
+
+  <!-- 用于消息的监听的代理类MessageListenerAdapter -->
+  <bean id="messageQueueListenerAdapter"
+    class="org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter">
+    <!-- 监听器 -->
+    <constructor-arg ref="messageHandler" />
+    <!-- 监听器默认执行的方法 -->
+    <property name="defaultListenerMethod" value="handleMessage"></property>
+    <!-- 监听容器 -->
+    <property name="messageConverter" ref="jsonMessageConverter"></property>
+  </bean>
+
+  <!-- 监听容器      prefetch  以每次多少条数据进行访问 -->
+  <rabbit:listener-container
+    connection-factory="connectionRabbitConsumerFactory" acknowledge="manual" prefetch="2"  task-executor="taskExecutor" concurrency="6" >
+    <!-- 监听代理类 -->
+    <rabbit:listener queues="${rabbitmq_queue}" ref="messageQueueListenerAdapter" />
+  </rabbit:listener-container>
+
+</beans>

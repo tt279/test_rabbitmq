@@ -1,0 +1,123 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>test</groupId>
+  <artifactId>test_rabbitmq</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>test_rabbitmq</name>
+  <url>http://maven.apache.org</url>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
+    </dependency>
+    
+    <!-- https://mvnrepository.com/artifact/org.springframework/spring-context -->
+	<dependency>
+	    <groupId>org.springframework</groupId>
+	    <artifactId>spring-context</artifactId>
+	    <version>4.3.9.RELEASE</version>
+	</dependency>
+	
+	<!-- https://mvnrepository.com/artifact/com.alibaba/fastjson -->
+	<dependency>
+	    <groupId>com.alibaba</groupId>
+	    <artifactId>fastjson</artifactId>
+	    <version>1.2.31</version>
+	</dependency>
+	
+	<!-- https://mvnrepository.com/artifact/org.springframework.amqp/spring-amqp -->
+	<!-- <dependency>
+	    <groupId>org.springframework.amqp</groupId>
+	    <artifactId>spring-amqp</artifactId>
+	    <version>1.7.2.RELEASE</version>
+	</dependency> -->
+	
+	<!-- https://mvnrepository.com/artifact/org.springframework.amqp/spring-rabbit -->
+	<dependency>
+	    <groupId>org.springframework.amqp</groupId>
+	    <artifactId>spring-rabbit</artifactId>
+	    <version>1.7.2.RELEASE</version>
+	</dependency>
+
+  </dependencies>
+  
+  	<repositories>
+		<repository>
+			<id>central</id>
+			<url>http://maven.aliyun.com/nexus/content/groups/public</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>java.net</id>
+			<url>http://download.java.net/maven/2/</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>alibaba</id>
+			<url>http://code.alibabatech.com/mvn/releases/</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>sonatype</id>
+			<name>sonatype</name>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>sonatype-release</id>
+			<name>sonatype-release</name>
+			<url>https://oss.sonatype.org/service/local/repositories/releases/content</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+  
+    <build>
+	<plugins>   
+		<plugin>   
+			<groupId>org.apache.maven.plugins</groupId>   
+			<artifactId>maven-compiler-plugin</artifactId>   
+			<configuration>   
+			<source>1.8</source>   
+			<target>1.8</target>   
+			</configuration>   
+		</plugin>   
+	</plugins> 
+	</build>
+  
+</project>
